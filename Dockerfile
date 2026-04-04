@@ -18,7 +18,7 @@ RUN apt-get -y install htop
 # 3) install packages using notebook user
 USER jovyan
 
-RUN pip install --no-cache-dir notebook-intelligence
+RUN pip install --no-cache-dir notebook-intelligence fastmcp==3.2.0
 
 # Override command to disable running jupyter notebook at launch
 # CMD ["/bin/bash"]
