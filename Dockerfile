@@ -1,24 +1,48 @@
-# 1) choose base container
-# generally use the most recent tag
+ARG BASE_TAG=latest
+FROM ghcr.io/ucsd-ets/datascience-notebook:${BASE_TAG}
 
-# base notebook, contains Jupyter and relevant tools
-# See https://github.com/ucsd-ets/datahub-docker-stack/wiki/Stable-Tag 
-# for a list of the most current containers we maintain
-ARG BASE_CONTAINER=ghcr.io/ucsd-ets/scipy-ml-notebook:2026.1-main
-
-FROM $BASE_CONTAINER
-
-LABEL maintainer="UC San Diego ITS/ETS <ets-consult@ucsd.edu>"
-
-# 2) change to root to install packages
 USER root
 
-RUN apt-get -y install htop
+# tensorflow, pytorch stable versions
+# https://pytorch.org/get-started/previous-versions/
 
-# 3) install packages using notebook user
+ARG TORCH_VERSION=2.11.0
+
+# apt deps
+RUN apt-get update && \
+  apt-get install -y \
+  libtinfo5 build-essential && \
+  apt-get clean && rm -rf /var/lib/apt/lists/*
+
 USER jovyan
 
-RUN pip install --no-cache-dir notebook-intelligence fastmcp==3.2.0
+RUN pip3 install --no-cache-dir --upgrade uv
 
-# Override command to disable running jupyter notebook at launch
-# CMD ["/bin/bash"]
+RUN uv pip install --system \
+        --extra-index-url https://pypi.nvidia.com \
+        --extra-index-url https://download.pytorch.org/whl/cu128 \
+        nvidia-cuda-nvcc-cu12 \
+        nvidia-nccl-cu12 \
+        cuda-python \
+        opencv-python \
+        PyQt5 \
+        pycocotools \
+        pillow \
+        scapy \
+        nvidia-cudnn-cu12 \
+        torch==$TORCH_VERSION \
+        torchvision \
+        torchaudio \
+        transformers \
+        datasets \
+        accelerate \
+        huggingface-hub \
+        timm \
+    && \
+    fix-permissions $CONDA_DIR && \
+    fix-permissions /home/$NB_USER && \
+    uv cache clean
+
+USER $NB_UID:$NB_GID
+ENV PATH=${PATH}:/usr/local/nvidia/bin:/opt/conda/bin
+
